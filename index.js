@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const { query } = require('express');
@@ -20,6 +21,7 @@ async function run() {
     try {
         await client.connect();
         const productsCollection = client.db('fridgey').collection('products');
+        const userCollection = client.db('fridgey').collection('user');
 
         app.get('/products', async (req, res) => {
             const query = {};
@@ -27,6 +29,19 @@ async function run() {
             const product = await cursor.toArray();
             res.send(product);
         });
+
+        app.put('/user/:email', async (req, res) => {
+            const email = req.params.email;
+            const user = req.body;
+            const filter = { email: email };
+            const options = { upsert: true };
+            const updateDoc = {
+              $set: user,
+            };
+            const result = await userCollection.updateOne(filter, updateDoc, options);
+            const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
+            res.send({result, token});
+          });
 
 
     }
